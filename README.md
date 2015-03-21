@@ -7,6 +7,7 @@ Demo for converting XLS message to XML using Smooks and MULE ESB
 
 
 This project 
+---------
 1.	Reads excel sheet from the input folder and converts into the CSV[EXCEL - TO -CSV]
 2.	Reads the CSV file converts to java object using smooks [CSV - TO- - Java]
 3.	Reads the java objects convert into the xml using jaxb-xml-to-object-transformer
