@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ML-MessageList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="ISBNMessage.xsd">
+  <M-Message>
+    <ON-OrderNo>ON-OrderNo</ON-OrderNo>
+    <CN-ClientName>CN-ClientName</CN-ClientName>
+    <CD-ClientDetails>
+      <FN-FirstName>FN-FirstName</FN-FirstName>
+      <LN-LastName>LN-LastName</LN-LastName>
+      <A-Age>A-Age</A-Age>
+      <C-County>C-County</C-County>
+    </CD-ClientDetails>
+  </M-Message>
+</ML-MessageList>

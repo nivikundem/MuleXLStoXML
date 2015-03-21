@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<smooks-resource-list xmlns="http://www.milyn.org/xsd/smooks-1.1.xsd"
+		xmlns:csv="http://www.milyn.org/xsd/smooks/csv-1.3.xsd"
+		xmlns:jb="http://www.milyn.org/xsd/smooks/javabean-1.4.xsd">
+
+    <csv:reader fields="*"/>
+    <jb:bean beanId="csvFile" class="java.util.ArrayList" createOnElement="csv-set">
+    	<jb:wiring beanIdRef="csvLine"/>
+    </jb:bean> 
+    <jb:bean beanId="csvLine" class="java.util.HashMap" createOnElement="csv-record">
+    	<jb:value property="RecordNumber" data="csv-record/@number"/>
+    	<jb:wiring beanIdRef="csvFields"/>
+    </jb:bean>
+    <jb:bean beanId="csvFields" class="java.util.ArrayList" createOnElement="csv-record">
+    	<jb:value data="csv-record/*"/>
+    </jb:bean>
+
+</smooks-resource-list>

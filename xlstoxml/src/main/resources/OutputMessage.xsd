@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="MessageList">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Message">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="OrderNo" type="xs:string" minOccurs="1"/>
+							<xs:element name="ClientName" type="xs:string" minOccurs="1"/>
+							<xs:element name="ClientDetails" minOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="FirstName" type="xs:string" minOccurs="1"/>
+										<xs:element name="LastName" type="xs:string" minOccurs="1"/>
+										<xs:element name="Age" type="xs:string" minOccurs="1"/>
+										<xs:element name="County" type="xs:string" minOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>				
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

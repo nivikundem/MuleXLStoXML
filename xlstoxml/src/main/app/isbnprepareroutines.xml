@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    
+ 
+    <spring:beans>
+        <spring:bean id="ISBNUtilFixBean" name="uk.co.nivi.util.ClientDetailsFixes" class="uk.co.nivi.util.ClientDetailsFixes"/>
+    </spring:beans>       
+    
+    <flow name="isbnprepareroutinesFlow1" doc:name="isbnprepareroutinesFlow1">    
+         <vm:inbound-endpoint exchange-pattern="request-response" path="ISBN.queue.ClientDetailsRoutine" doc:name="VM"/>       
+         <invoke name="FixRoutines" object-ref="ISBNUtilFixBean" method="NameFix" methodArguments="#[payload]" doc:name="Invoke"/>       
+    	
+		  <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; XLSTOXML : ClientDetailsRoutine error &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;" level="INFO" doc:name="Logger"/>
+            <message-properties-transformer scope="session" doc:name="Message Properties">
+                <add-message-property key="errorprocess" value="#['XLSTOXML']"/>
+                <add-message-property key="errormessage" value="#['XLSTOXML ClientDetailsRoutine conversion process failed']"/>
+                <add-message-property key="erroradditionaltext" value="#[' ']"/>
+            </message-properties-transformer>
+            <vm:outbound-endpoint exchange-pattern="request-response" path="XLSTOXML.queue.VMError" doc:name="VMError"/>
+        </catch-exception-strategy>
+    </flow> 
+</mule>

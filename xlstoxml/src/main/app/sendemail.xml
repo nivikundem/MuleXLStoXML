@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:imap="http://www.mulesoft.org/schema/mule/imap"
+	xmlns:jdbc-ee="http://www.mulesoft.org/schema/mule/ee/jdbc"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/imap http://www.mulesoft.org/schema/mule/imap/current/mule-imap.xsd
+http://www.mulesoft.org/schema/mule/ee/jdbc http://www.mulesoft.org/schema/mule/ee/jdbc/current/mule-jdbc-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+ <smtp:gmail-connector name="Gmail" contentType="text/xhtml"  validateConnections="true" doc:name="Gmail"/>
+   
+ <flow name="XLSTOXML_SendGenEmailFlow" doc:name="XLSTOXML_SendGenEmailFlow" processingStrategy="synchronous">
+      
+    <file:inbound-endpoint path="${General.fileroot}/${xlstoxml.subdirectory}/XML" responseTimeout="10000" doc:name="ReadXmlFile" pollingFrequency="60000" connector-ref="File" mimeType="text/xml" moveToPattern="#[message.inboundProperties['originalFilename']]"/>
+	
+	<object-to-string-transformer doc:name="Object to String"/>   
+ 	<set-attachment attachmentName="XLSTOXML.xml" value="#[payload]" contentType="text/xml" doc:name="Attachment"/>   
+    <smtp:outbound-endpoint host="${email.host}" port="${email.port}" user="${email.user}" password="${email.password}" to="${email.to}" from="${email.from}" subject="${email.subject}" responseTimeout="10000" doc:name="SMTP" connector-ref="Gmail"/>
+     
+		<catch-exception-strategy doc:name="XLSTOXML_Catch Exception Strategy">
+			<message-properties-transformer scope="session" doc:name="Message Properties"> 
+				<add-message-property key="errorprocess" value="#['XLSTOXML']"></add-message-property>  
+				<add-message-property key="errormessage" value="#['Not able to send email: TO Gmail']"></add-message-property>  
+				<add-message-property key="erroradditionaltext" value="#['Email Id ' + ${email.to} + ' : XML Name ' +XLSTOXML.xml + ' : ' + exception.cause.message]"></add-message-property>  
+			</message-properties-transformer>  
+			<vm:outbound-endpoint exchange-pattern="request-response" path="XLSTOXML" doc:name="VMError"></vm:outbound-endpoint> 		
+		</catch-exception-strategy>
+		
+</flow>
+
+</mule>

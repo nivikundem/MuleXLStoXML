@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry exported="true" kind="con" path="MULE_RUNTIME"/>
+	<classpathentry kind="lib" path="lib/commons-dbcp-1.4.jar"/>
+	<classpathentry kind="lib" path="lib/freemarker-2.3.15.jar"/>
+	<classpathentry kind="lib" path="lib/milyn-smooks-all-1.5.1.jar"/>
+	<classpathentry kind="lib" path="lib/ow2-bundles-externals-opencsv-1.0.23.jar"/>
+	<classpathentry kind="lib" path="lib/smooks-4-mule-3-1.3-RC1.jar"/>
+	<classpathentry kind="lib" path="lib/smooks-4-mule-core-1.3-RC1.jar"/>
+	<classpathentry kind="src" path="src/main/app"/>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/resources"/>
+	<classpathentry kind="src" path="src/main/api"/>
+	<classpathentry kind="lib" path="C:/JobSearch/EDI_to_XML/EDI_TO_XML/LIB/jtds-1.2.6.jar"/>
+	<classpathentry kind="lib" path="C:/JobSearch/EDI_to_XML/EDI_TO_XML/LIB/mysql-connector-java-5.1.10.jar"/>
+	<classpathentry kind="lib" path="C:/JobSearch/EDI_to_XML/EDI_TO_XML/LIB/sqljdbc4.jar"/>
+	<classpathentry kind="src" path="mappings"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>

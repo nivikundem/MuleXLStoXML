@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:jdbc-ee="http://www.mulesoft.org/schema/mule/ee/jdbc"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/ee/jdbc http://www.mulesoft.org/schema/mule/ee/jdbc/current/mule-jdbc-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+
+<flow name="FinalXMLProcessorVM" doc:name="FinalXMLProcessorVM">
+	<vm:inbound-endpoint exchange-pattern="request-response" path="ISBN.queue.FinalXMLProcessorVM" doc:name="VM"/>	
+	<logger message="ISBN.queue.FinalXMLProcessorVM :::: #[payload]" level="INFO" doc:name="Logger"/>    	
+	<message-properties-transformer scope="session" doc:name="Set file name">
+			<add-message-property key="xmlfilename" value="#[function:datestamp:yyyyMMddHHmmss'.xml']"/>			
+	</message-properties-transformer>
+	
+		<file:outbound-endpoint path="${General.fileroot}/${xlstoxml.subdirectory}/XML" outputPattern="#[sessionVars.xmlfilename]" responseTimeout="10000" doc:name="XML" connector-ref="FileDel"/>
+       
+	<catch-exception-strategy doc:name="Catch Exception Strategy">
+         <logger message="&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; XLSTOXML : xls to csv conversion error &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;" level="INFO" doc:name="Logger"/>
+         <message-properties-transformer scope="session" doc:name="Message Properties">
+             <add-message-property key="errorprocess" value="#['XLSTOXML']"/>
+             <add-message-property key="errormessage" value="#['XLSTOXML FinalXMLProcessorVM process failed']"/>
+             <add-message-property key="erroradditionaltext" value="#[' ']"/>
+         </message-properties-transformer>
+         <vm:outbound-endpoint exchange-pattern="request-response" path="XLSTOXML.queue.VMError" doc:name="VMError"/>
+	</catch-exception-strategy>
+	
+</flow>
+</mule>

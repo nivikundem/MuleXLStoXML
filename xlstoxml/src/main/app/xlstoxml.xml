@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+xmlns:db="http://www.mulesoft.org/schema/mule/db"
+xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:context="http://www.springframework.org/schema/context"
+xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.1"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+
+<context:property-placeholder location="file:c:/Work/ESBPG/ProjectProperties/General.properties,file:c:/Work/ESBPG/ProjectProperties/DB.properties,file:c:/Work/ESBPG/ProjectProperties/XlsToXml.properties,file:c:/Work/ESBPG/ProjectProperties/Email.properties"/>
+
+<file:connector name="File" autoDelete="false" streaming="true" validateConnections="true" doc:name="File"/>
+<file:connector name="FileDel" autoDelete="true" streaming="true" validateConnections="true" doc:name="File"/>
+
+<db:mysql-config name="MySQL_Configuration" host="${DB.host}" port="${DB.port}" user="${DB.user}" password="${DB.password}" database="${DB.database}" doc:name="MySQL Configuration"/>
+
+<mulexml:jaxb-context name="JAXB_Context" packageNames="uk.co.isbn" doc:name="JAXB Context"/>
+	 
+		<flow name="xlstocsvFlow1" doc:name="xlstocsvFlow1">
+		
+			<file:inbound-endpoint path="${General.fileroot}/${xlstoxml.subdirectory}/${xlstoxml.folder}" responseTimeout="10000" doc:name="ReadExcelFile" pollingFrequency="60000" connector-ref="File"/>
+					
+			<component class="uk.co.nivi.component.XlsToCsv" doc:name="XlsToCsv"/>
+			<message-properties-transformer scope="session" doc:name="Set file name">
+			<add-message-property key="outfilename" value="#[flowVars.originalFilename+'.csv']"/>			
+			</message-properties-transformer>			
+			<file:outbound-endpoint path="${General.fileroot}/${xlstoxml.subdirectory}/CSV" outputPattern="#[sessionVars.outfilename]" responseTimeout="10000" doc:name="CSV" connector-ref="FileDel"/>
+		
+			<catch-exception-strategy doc:name="Catch Exception Strategy">
+	            <logger message="&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; XLSTOXML : xls to csv conversion error &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;" level="INFO" doc:name="Logger"/>
+	            <message-properties-transformer scope="session" doc:name="Message Properties">
+	                <add-message-property key="errorprocess" value="#['XLSTOXML']"/>
+	                <add-message-property key="errormessage" value="#['XLSTOXML xls to csv conversion process failed']"/>
+	                <add-message-property key="erroradditionaltext" value="#[' ']"/>
+	            </message-properties-transformer>
+	            <vm:outbound-endpoint exchange-pattern="request-response" path="XLSTOXML.queue.VMError" doc:name="VMError"/>
+	        </catch-exception-strategy>		
+		</flow> 
+
+
+		<flow name="csvtoPOJOFlow1" doc:name="csvtoPOJOFlow1">
+		    <file:inbound-endpoint path="${General.fileroot}/${xlstoxml.subdirectory}/CSV" responseTimeout="10000" doc:name="ReadCSVFile" pollingFrequency="60000" connector-ref="File"/>	
+			<message-properties-transformer scope="session" doc:name="Session Variables">
+			<add-message-property key="row1columnnames" value="#[new ArrayList()]"/>
+			<add-message-property key="newi" value="#[Integer.parseInt(0)]"/>
+			<add-message-property key="daerrors" value="#[new LinkedList()]"/>
+			<add-message-property key="jaxbcontextISBN" value="#[new Object()]"/>
+			<add-message-property key="dbsourcetotarget" value="#[new LinkedList()]"/>
+			<add-message-property key="dacolumnmappings" value="#[new LinkedList()]"/>
+			<add-message-property key="dalookups" value="#[new LinkedList()]"/>
+			</message-properties-transformer>
+			<enricher target="#[sessionVars.jaxbcontextISBN]" doc:name="Message Enricher">
+			<component class="uk.co.nivi.component.JaxbContextCreateISBN" doc:name="Create Jaxb ISBN context"/>
+			</enricher>
+			
+			<enricher doc:name="Message Enricher" target="#[header:session:dbsourcetotarget]">
+			<db:select config-ref="MySQL_Configuration" doc:name="Select_SourceToTarget">
+			<db:parameterized-query><![CDATA[
+			SELECT target,source FROM isbn.sourcetotarget
+			]]></db:parameterized-query>
+			</db:select>
+		    </enricher>
+
+			<enricher doc:name="Message Enricher" target="#[header:session:dacolumnmappings]">
+			<db:select config-ref="MySQL_Configuration" doc:name="Select_ColumnMappings">
+			<db:parameterized-query><![CDATA[
+			SELECT ColumnName, MapToField FROM isbn.columnmapping
+			]]></db:parameterized-query>
+			</db:select>
+		    </enricher>		    
+		    
+		    <enricher doc:name="Message Enricher" target="#[header:session:dalookups]">
+			<db:select config-ref="MySQL_Configuration" doc:name="Select_ColumnMappings">
+			<db:parameterized-query><![CDATA[
+			SELECT code,name FROM isbn.lookups 
+			]]></db:parameterized-query>
+			</db:select>
+		    </enricher>		
+		    
+			<component class="uk.co.nivi.component.SmooksCSVToPOJO" doc:name="CSV2POJO"/>      
+			 
+			<flow-ref name="PojoProcessFile" doc:name="PojoProcessFile"/> 			
+			
+			<catch-exception-strategy doc:name="Catch Exception Strategy">
+	            <logger message="&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; XLSTOXML : CSVToPOJO conversion error &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;" level="INFO" doc:name="Logger"/>
+	            <message-properties-transformer scope="session" doc:name="Message Properties">
+	                <add-message-property key="errorprocess" value="#['XLSTOXML']"/>
+	                <add-message-property key="errormessage" value="#['XLSTOXML CSVToPOJO conversion process failed']"/>
+	                <add-message-property key="erroradditionaltext" value="#[' ']"/>
+	            </message-properties-transformer>
+	            <vm:outbound-endpoint exchange-pattern="request-response" path="XLSTOXML.queue.VMError" doc:name="VMError"/>
+	        </catch-exception-strategy>
+		
+		</flow>
+
+
+		<flow name="PojoProcessFile" doc:name="PojoProcessFile">		
+		
+			<foreach collection="#[payload]" doc:name="For Each">
+				<message-properties-transformer scope="session" doc:name="Message Properties">
+				<add-message-property key="csvrownumber" value="#[payload.RecordNumber]"/>
+				</message-properties-transformer>
+				
+				<choice doc:name="Choice">
+					<when expression="#[sessionVars.csvrownumber.equals(&quot;1&quot;)]">  
+						<enricher target="#[sessionVars.row1columnnames]" doc:name="Message Enricher">
+						<component class="uk.co.nivi.component.ColumnNames" doc:name="File Column Names"/>
+						</enricher> 						
+						<logger message="#[sessionVars.row1columnnames]" level="INFO" doc:name="Logger"/>
+					</when>
+					<otherwise>
+                       <flow-ref name="DataRowsFow" doc:name="Flow Reference For Calling DataRowSubFlow"/>	                      
+		               <vm:outbound-endpoint exchange-pattern="request-response" path="ISBN.queue.FinalXMLProcessorVM" doc:name="VM"/>	
+					</otherwise>
+				</choice>
+			</foreach>
+						
+			<catch-exception-strategy doc:name="Catch Exception Strategy">
+	            <logger message="&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; XLSTOXML : DataRowSubFlow error &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;" level="INFO" doc:name="Logger"/>
+	            <message-properties-transformer scope="session" doc:name="Message Properties">
+	                <add-message-property key="errorprocess" value="#['XLSTOXML']"/>
+	                <add-message-property key="errormessage" value="#['XLSTOXML DataRowSubFlow process failed']"/>
+	                <add-message-property key="erroradditionaltext" value="#[' ']"/>
+	            </message-properties-transformer>
+	            <vm:outbound-endpoint exchange-pattern="request-response" path="XLSTOXML.queue.VMError" doc:name="VMError"/>
+	        </catch-exception-strategy>		
+	    </flow>
+	    
+	    
+        <sub-flow name="DataRowsFow" doc:name="DataRowsFow">
+	        <flow-ref name="SubFlowToConvertISBNFormatXML" doc:name="Flow Reference to call Subflow to convert isbn xml"/>
+	
+			<set-payload value="#[updatedmessagedata]" doc:name="Set Payload"/>
+			<vm:outbound-endpoint exchange-pattern="request-response" path="ISBN.queue.ClientDetailsRoutine" doc:name="VM"/>
+	
+			<choice doc:name="which routine return type">
+				<when expression="#[payload instanceof uk.co.nivi.Bean.PrepareRoutineResult]">
+					<choice doc:name="Choice">
+						<when expression="#[payload.getDetails().size()&gt;0]">
+							<message-properties-transformer overwrite="true" scope="session" doc:name="Update flag">
+							<add-message-property key="messageupdatedflag" value="#[(payload.getMCUpdatedFlag()?&quot;Y&quot;:sessionVars.messageupdatedflag)]"/>
+							</message-properties-transformer>
+							<foreach collection="#[payload.getDetails()]" counterVariableName="c1" doc:name="For Each">
+								<message-properties-transformer overwrite="true" scope="session" doc:name="Msg and stop levels">
+								<add-message-property key="stopsignalled" value="Y"/>
+								<add-message-property key="loglevel" value="#[payload.getSeverity()]"/>
+								<add-message-property key="logtext" value="#[payload.getMessage()]"/>
+								</message-properties-transformer>
+							
+							</foreach>
+						</when>
+						<otherwise>
+							<message-properties-transformer doc:name="Dummy 2">
+							<add-message-property key="dummy2" value="#['']"/>
+							</message-properties-transformer>
+						</otherwise>
+					</choice>
+					<set-payload value="#[payload.MC]" doc:name="Set Payload"/>
+				</when>
+				<otherwise>
+					<message-properties-transformer overwrite="true" scope="session" doc:name="Handle stop levels">
+					<add-message-property key="stopsignalled" value="Y"/>
+					</message-properties-transformer>
+				</otherwise>
+			</choice>
+	        <flow-ref name="ISBN_To_FinalXML_SubFlow" doc:name="Calling Subflow For ISBN To FinalXML Coverter"/>					
+
+   </sub-flow>
+   
+   
+    <sub-flow name="SubFlowToConvertISBNFormatXML" doc:name="SubFlowToConvertISBNFormatXML">       
+       <component class="uk.co.nivi.component.ISBNConversion" doc:name="POJO To ISBN"/> 		
+		<logger message="#[payload]" level="INFO" doc:name="Logger"/> 
+		<object-to-string-transformer doc:name="Object to String"/>
+		<logger message="#[sessionVars.csvrownumber]" level="INFO" doc:name="Logger"/>  		
+		<mulexml:jaxb-xml-to-object-transformer returnClass=" uk.co.isbn.MLMessageList" jaxbContext-ref="JAXB_Context" doc:name="XML to JAXB Object"/>
+		<message-properties-transformer scope="invocation" doc:name="store message data">
+		<add-message-property key="updatedmessagedata" value="#[payload]"/>
+		</message-properties-transformer>				
+    </sub-flow>
+    
+    <sub-flow name="ISBN_To_FinalXML_SubFlow" doc:name="ISBN_To_FinalXML_SubFlow">    
+		<message-properties-transformer doc:name="Message Properties" overwrite="true" scope="invocation">
+		<add-message-property key="updatedmessagedata" value="#[payload]"/>
+		</message-properties-transformer>
+		
+		<set-payload value="#[updatedmessagedata]" doc:name="Set Payload"/>
+		<mulexml:jaxb-object-to-xml-transformer jaxbContext-ref="JAXB_Context" doc:name="JAXB Object to XML"/>
+		<object-to-string-transformer doc:name="Object to String"/>
+		
+		<logger message="#[payload]" level="INFO" doc:name="Logger"/> 
+		<enricher target="#[sessionVars.jaxbcontextmessage]" doc:name="Message Enricher">
+		<component class="uk.co.nivi.component.JaxbContextCreate" doc:name="Create Jaxb for final message context"/>
+		</enricher>
+		<component class="uk.co.nivi.component.BuildOutputMessage" doc:name="BuildOutputMessage"/>
+		<object-to-string-transformer doc:name="Object to String"/>	
+    </sub-flow>
+
+
+</mule>

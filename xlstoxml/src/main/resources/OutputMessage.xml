@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MessageList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OutputMessage.xsd">
+  <Message>
+    <OrderNo>OrderNo</OrderNo>
+    <ClientName>ClientName</ClientName>
+    <ClientDetails>
+      <FirstName>FirstName</FirstName>
+      <LastName>LastName</LastName>
+      <Age>Age</Age>
+      <County>County</County>
+    </ClientDetails>
+  </Message>
+</MessageList>
